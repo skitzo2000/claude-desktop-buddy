@@ -1,5 +1,5 @@
 #include "character.h"
-#include <M5StickCPlus.h>
+#include "hal/board.h"
 #include <LittleFS.h>
 #include <AnimatedGIF.h>
 #include <ArduinoJson.h>

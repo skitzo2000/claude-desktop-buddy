@@ -1,4 +1,7 @@
 #include "board.h"
+#include "input.h"
+#include "audio.h"
+#include "rtc.h"
 #include <SPI.h>
 
 // Display uses the default `SPI` instance (VSPI) per build_flags pin map.
@@ -17,6 +20,10 @@ void boardBegin() {
 }
 
 void boardLoop() {
-    // Reserved for cooperative per-tick housekeeping (touch IRQ debounce,
-    // backlight fade, etc.). Empty until M2.2/M3 modules need it.
+    // Per-tick HAL housekeeping. main.cpp calls boardLoop() at the top of
+    // its main loop (where M5.update() used to live) and gets touch poll,
+    // tone auto-stop, and RTC NVS-save for free.
+    inputUpdate();
+    audioLoop();
+    rtcLoop();
 }
