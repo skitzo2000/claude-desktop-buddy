@@ -255,7 +255,7 @@ static void drawMenuHints(const Palette& p, int mx, int mw, int hy,
 
 static void drawSettings() {
   const Palette& p = characterPalette();
-  int mw = 118, mh = 16 + SETTINGS_N * 14 + MENU_HINT_H;
+  int mw = 220, mh = 20 + SETTINGS_N * 18 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, p.textDim);
@@ -265,10 +265,10 @@ static void drawSettings() {
   for (int i = 0; i < SETTINGS_N; i++) {
     bool sel = (i == settingsSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + i * 14);
+    spr.setCursor(mx + 10, my + 10 + i * 18);
     spr.print(sel ? "> " : "  ");
     spr.print(settingsItems[i]);
-    spr.setCursor(mx + mw - 36, my + 8 + i * 14);
+    spr.setCursor(mx + mw - 56, my + 10 + i * 18);
     spr.setTextColor(p.textDim, PANEL);
     if (i == 0) {
       spr.printf("%u/4", brightLevel);
@@ -289,15 +289,15 @@ static void drawSettings() {
 
 static void drawReset() {
   const Palette& p = characterPalette();
-  int mw = 118, mh = 16 + RESET_N * 14 + MENU_HINT_H;
+  int mw = 200, mh = 24 + RESET_N * 24 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, HOT);
-  spr.setTextSize(1);
+  spr.setTextSize(2);
   for (int i = 0; i < RESET_N; i++) {
     bool sel = (i == resetSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + i * 14);
+    spr.setCursor(mx + 8, my + 12 + i * 24);
     spr.print(sel ? "> " : "  ");
     bool armed = (i == resetConfirmIdx) &&
                  (int32_t)(millis() - resetConfirmUntil) < 0;
@@ -326,19 +326,20 @@ void menuConfirm() {
 
 void drawMenu() {
   const Palette& p = characterPalette();
-  int mw = 118, mh = 16 + MENU_N * 14 + MENU_HINT_H;
+  int mw = 200, mh = 24 + MENU_N * 24 + MENU_HINT_H;
   int mx = (W - mw) / 2, my = (H - mh) / 2;
   spr.fillRoundRect(mx, my, mw, mh, 4, PANEL);
   spr.drawRoundRect(mx, my, mw, mh, 4, p.textDim);
-  spr.setTextSize(1);
+  spr.setTextSize(2);
   for (int i = 0; i < MENU_N; i++) {
     bool sel = (i == menuSel);
     spr.setTextColor(sel ? p.text : p.textDim, PANEL);
-    spr.setCursor(mx + 6, my + 8 + i * 14);
+    spr.setCursor(mx + 8, my + 12 + i * 24);
     spr.print(sel ? "> " : "  ");
     spr.print(menuItems[i]);
-    if (i == 4) spr.print(dataDemo() ? "  on" : "  off");
+    if (i == 4) spr.print(dataDemo() ? " on" : " off");
   }
+  spr.setTextSize(1);
   drawMenuHints(p, mx, mw, my + mh - 12);
 }
 
@@ -425,11 +426,11 @@ static void drawClock() {
     paintedOrient = 0;
     // Bottom half — buddy naturally lives at y=0..82, GIF peeks at top
     // via peek mode. Clearing from 90 leaves both untouched.
-    spr.fillRect(0, 90, W, H - 90, p.bg);
+    spr.fillRect(0, 110, W, H - 110, p.bg);
     spr.setTextDatum(MC_DATUM);
-    spr.setTextSize(4); spr.setTextColor(p.text, p.bg);    spr.drawString(hm, CX, 140);
-    spr.setTextSize(2); spr.setTextColor(p.textDim, p.bg); spr.drawString(ss, CX, 175);
-    spr.setTextSize(1);                                     spr.drawString(dl, CX, 200);
+    spr.setTextSize(6); spr.setTextColor(p.text, p.bg);    spr.drawString(hm, CX, 180);
+    spr.setTextSize(3); spr.setTextColor(p.textDim, p.bg); spr.drawString(ss, CX, 230);
+    spr.setTextSize(2);                                     spr.drawString(dl, CX, 268);
     spr.setTextDatum(TL_DATUM);
     return;
   }
@@ -523,20 +524,20 @@ static void _infoHeader(const Palette& p, int& y, const char* section, uint8_t p
 void drawPasskey() {
   const Palette& p = characterPalette();
   spr.fillSprite(p.bg);
-  spr.setTextSize(1);
+  spr.setTextSize(2);
   spr.setTextColor(p.textDim, p.bg);
-  spr.setCursor(8, 56);  spr.print("BLUETOOTH PAIRING");
-  spr.setCursor(8, 184); spr.print("enter on desktop:");
-  spr.setTextSize(3);
+  spr.setCursor(8, 80);  spr.print("BLUETOOTH PAIRING");
+  spr.setCursor(8, 260); spr.print("enter on desktop:");
+  spr.setTextSize(5);
   spr.setTextColor(p.text, p.bg);
   char b[8]; snprintf(b, sizeof(b), "%06lu", (unsigned long)blePasskey());
-  spr.setCursor((W - 18 * 6) / 2, 110);
+  spr.setCursor((W - 30 * 6) / 2, 150);
   spr.print(b);
 }
 
 void drawInfo() {
   const Palette& p = characterPalette();
-  const int TOP = 70;
+  const int TOP = 100;
   spr.fillRect(0, TOP, W, H - TOP, p.bg);
   spr.setTextSize(1);
   int y = TOP + 2;
@@ -566,18 +567,18 @@ void drawInfo() {
     ln("> ascii pet to cycle.");
 
   } else if (infoPage == 1) {
-    _infoHeader(p, y, "BUTTONS", infoPage);
-    spr.setTextColor(p.text, p.bg);    ln("A   front");
-    spr.setTextColor(p.textDim, p.bg); ln("    next screen");
-    ln("    approve prompt"); y += 4;
-    spr.setTextColor(p.text, p.bg);    ln("B   right side");
-    spr.setTextColor(p.textDim, p.bg); ln("    next page");
-    ln("    deny prompt"); y += 4;
+    _infoHeader(p, y, "TOUCH ZONES", infoPage);
+    spr.setTextColor(p.text, p.bg);    ln("A  bottom-right");
+    spr.setTextColor(p.textDim, p.bg); ln("   next screen");
+    ln("   approve prompt"); y += 4;
+    spr.setTextColor(p.text, p.bg);    ln("B  bottom-left");
+    spr.setTextColor(p.textDim, p.bg); ln("   next page");
+    ln("   deny prompt"); y += 4;
     spr.setTextColor(p.text, p.bg);    ln("hold A");
-    spr.setTextColor(p.textDim, p.bg); ln("    menu"); y += 4;
-    spr.setTextColor(p.text, p.bg);    ln("Power  left side");
-    spr.setTextColor(p.textDim, p.bg); ln("    tap = screen off");
-    ln("    hold 6s = off");
+    spr.setTextColor(p.textDim, p.bg); ln("   menu"); y += 4;
+    spr.setTextColor(p.text, p.bg);    ln("top-right corner");
+    spr.setTextColor(p.textDim, p.bg); ln("   tap = screen sleep");
+    ln("   any tap to wake");
 
   } else if (infoPage == 2) {
     _infoHeader(p, y, "CLAUDE", infoPage);
@@ -673,15 +674,15 @@ void drawInfo() {
     spr.setTextColor(p.textDim, p.bg);
     ln("hardware");
     y += 4;
-    ln("M5StickC Plus");
-    ln("ESP32 + AXP192");
+    ln("CYD ESP32-2432S028R");
+    ln("ESP32-D0WD-V3");
   }
 }
 
 
 // Greedy word-wrap into fixed-width rows. Continuation rows get a leading
 // space. Returns number of rows written.
-static uint8_t wrapInto(const char* in, char out[][24], uint8_t maxRows, uint8_t width) {
+static uint8_t wrapInto(const char* in, char out[][48], uint8_t maxRows, uint8_t width) {
   uint8_t row = 0, col = 0;
   const char* p = in;
   while (*p && row < maxRows) {
@@ -715,7 +716,7 @@ static uint8_t wrapInto(const char* in, char out[][24], uint8_t maxRows, uint8_t
 
 static void drawApproval() {
   const Palette& p = characterPalette();
-  const int AREA = 78;
+  const int AREA = 120;
   spr.fillRect(0, H - AREA, W, AREA, p.bg);
   spr.drawFastHLine(0, H - AREA, W, p.textDim);
 
@@ -726,34 +727,34 @@ static void drawApproval() {
   if (waited >= 10) spr.setTextColor(HOT, p.bg);
   spr.printf("approve? %lus", (unsigned long)waited);
 
-  // Size 2 only if it fits one line (~10 chars at 12px on 135px screen)
+  // Tool name at size 3 if it fits one line (~13 chars at 18px on 240 wide); else size 2.
   int toolLen = strlen(tama.promptTool);
   spr.setTextColor(p.text, p.bg);
-  spr.setTextSize(toolLen <= 10 ? 2 : 1);
-  spr.setCursor(4, H - AREA + (toolLen <= 10 ? 14 : 18));
+  spr.setTextSize(toolLen <= 13 ? 3 : 2);
+  spr.setCursor(4, H - AREA + 18);
   spr.print(tama.promptTool);
   spr.setTextSize(1);
 
-  // Hint wraps at ~21 chars to two lines under the tool name
+  // Hint wraps at ~40 chars to two lines under the tool name.
   spr.setTextColor(p.textDim, p.bg);
   int hlen = strlen(tama.promptHint);
-  spr.setCursor(4, H - AREA + 34);
-  spr.printf("%.21s", tama.promptHint);
-  if (hlen > 21) {
-    spr.setCursor(4, H - AREA + 42);
-    spr.printf("%.21s", tama.promptHint + 21);
+  spr.setCursor(4, H - AREA + 56);
+  spr.printf("%.40s", tama.promptHint);
+  if (hlen > 40) {
+    spr.setCursor(4, H - AREA + 66);
+    spr.printf("%.40s", tama.promptHint + 40);
   }
 
   if (responseSent) {
     spr.setTextColor(p.textDim, p.bg);
-    spr.setCursor(4, H - 12);
+    spr.setCursor(4, H - 14);
     spr.print("sent...");
   } else {
     spr.setTextColor(TFT_GREEN, p.bg);
-    spr.setCursor(4, H - 12);
+    spr.setCursor(4, H - 14);
     spr.print("A: approve");
     spr.setTextColor(HOT, p.bg);
-    spr.setCursor(W - 48, H - 12);
+    spr.setCursor(W - 56, H - 14);
     spr.print("B: deny");
   }
 }
@@ -772,7 +773,7 @@ static void tinyHeart(int x, int y, bool filled, uint16_t col) {
 }
 
 static void drawPetStats(const Palette& p) {
-  const int TOP = 70;
+  const int TOP = 100;
   spr.fillRect(0, TOP, W, H - TOP, p.bg);
   spr.setTextSize(1);
   int y = TOP + 16;
@@ -881,7 +882,7 @@ void drawPet() {
 void drawHUD() {
   if (tama.promptId[0]) { drawApproval(); return; }
   const Palette& p = characterPalette();
-  const int SHOW = 3, LH = 8, WIDTH = 21;
+  const int SHOW = 4, LH = 16, WIDTH = 40;
   const int AREA = SHOW * LH + 4;
   spr.fillRect(0, H - AREA, W, AREA, p.bg);
   spr.setTextSize(1);
@@ -897,7 +898,7 @@ void drawHUD() {
 
   // Wrap all transcript lines into a flat display buffer. Track which
   // transcript index each display row came from, so we can dim older ones.
-  static char disp[32][24];
+  static char disp[32][48];
   static uint8_t srcOf[32];
   uint8_t nDisp = 0;
   for (uint8_t i = 0; i < tama.nLines && nDisp < 32; i++) {
