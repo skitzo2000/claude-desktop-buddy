@@ -2,6 +2,7 @@
 #include "input.h"
 #include "audio.h"
 #include "rtc.h"
+#include "touch_calibration.h"
 #include <SPI.h>
 
 // Display uses the default `SPI` instance (VSPI) per build_flags pin map.
@@ -17,6 +18,7 @@ void boardBegin() {
     hspiTouch.begin(25, 39, 32);        // HSPI: SCK=25, MISO=39, MOSI=32
     ts.begin(hspiTouch);                // bind touch to HSPI (critical)
     ts.setRotation(0);
+    touchCalibrateIfNeeded();           // first-boot 4-corner UI; no-op on subsequent boots
 }
 
 void boardLoop() {

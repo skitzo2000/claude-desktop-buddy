@@ -1051,8 +1051,15 @@ void loop() {
     wake();
   }
 
-  // No physical power button on CYD; PORT.md §6 plans a top-right-corner
-  // touch zone for screen sleep — wired in M3 once input zones land.
+  // Top-right-corner touch zone toggles screen sleep (replaces the M5.Axp
+  // short-press in the upstream firmware). Per PORT.md §6.
+  if (inputSleep.wasReleased()) {
+    if (screenOff) {
+      wake();
+    } else {
+      powerScreen(false);
+    }
+  }
 
   if (inputA.pressedFor(600) && !btnALong && !swallowBtnA) {
     btnALong = true;
