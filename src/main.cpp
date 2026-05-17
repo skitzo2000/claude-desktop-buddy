@@ -750,12 +750,16 @@ static void drawApproval() {
     spr.setCursor(4, H - 14);
     spr.print("sent...");
   } else {
-    spr.setTextColor(TFT_GREEN, p.bg);
-    spr.setCursor(4, H - 14);
-    spr.print("A: approve");
+    // Labels match the CYD touch zones per PORT.md §6:
+    // ZONE_DENY = bottom-LEFT (B), ZONE_APPROVE = bottom-RIGHT (A).
+    // Upstream M5StickC had BtnA on the front so "A: approve" sat left —
+    // on CYD that's inverted.
     spr.setTextColor(HOT, p.bg);
-    spr.setCursor(W - 56, H - 14);
+    spr.setCursor(4, H - 14);
     spr.print("B: deny");
+    spr.setTextColor(TFT_GREEN, p.bg);
+    spr.setCursor(W - 70, H - 14);
+    spr.print("A: approve");
   }
 }
 
