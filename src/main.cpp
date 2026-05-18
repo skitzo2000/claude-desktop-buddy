@@ -747,19 +747,29 @@ static void drawApproval() {
 
   if (responseSent) {
     spr.setTextColor(p.textDim, p.bg);
-    spr.setCursor(4, H - 14);
-    spr.print("sent...");
+    spr.setTextDatum(MC_DATUM);
+    spr.setTextSize(2);
+    spr.drawString("sent…", W / 2, H - 16);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextSize(1);
   } else {
-    // Labels match the CYD touch zones per PORT.md §6:
-    // ZONE_DENY = bottom-LEFT (B), ZONE_APPROVE = bottom-RIGHT (A).
-    // Upstream M5StickC had BtnA on the front so "A: approve" sat left —
-    // on CYD that's inverted.
-    spr.setTextColor(HOT, p.bg);
-    spr.setCursor(4, H - 14);
-    spr.print("B: deny");
-    spr.setTextColor(TFT_GREEN, p.bg);
-    spr.setCursor(W - 70, H - 14);
-    spr.print("A: approve");
+    // Colored button blocks aligned with the touch zones in hal/input.cpp:
+    // bottom-LEFT half = inputB (deny), bottom-RIGHT half = inputA (approve).
+    // PORT.md §6. Filled rects give an unmissable visual target on the
+    // wider screen vs the M5StickC's tiny status-line labels.
+    int by = H - 40;
+    int bh = 34;
+    int bw = (W - 12) / 2;
+    spr.fillRoundRect(4,            by, bw, bh, 8, HOT);
+    spr.fillRoundRect(W - 4 - bw,   by, bw, bh, 8, TFT_GREEN);
+    spr.setTextDatum(MC_DATUM);
+    spr.setTextSize(2);
+    spr.setTextColor(0xFFFF, HOT);
+    spr.drawString("DENY",   4 + bw / 2,       by + bh / 2);
+    spr.setTextColor(0xFFFF, TFT_GREEN);
+    spr.drawString("APPROVE", W - 4 - bw / 2,  by + bh / 2);
+    spr.setTextDatum(TL_DATUM);
+    spr.setTextSize(1);
   }
 }
 
