@@ -726,6 +726,10 @@ static void drawApproval() {
   uint32_t waited = (millis() - promptArrivedMs) / 1000;
   if (waited >= 10) spr.setTextColor(HOT, p.bg);
   spr.printf("approve? %lus", (unsigned long)waited);
+  if (tama.promptSession[0]) {
+    spr.setTextColor(p.textDim, p.bg);
+    spr.printf(" | %s", tama.promptSession);
+  }
 
   // Tool name at size 3 if it fits one line (~13 chars at 18px on 240 wide); else size 2.
   int toolLen = strlen(tama.promptTool);
