@@ -1,0 +1,62 @@
+name: Release firmware
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install PlatformIO
+        run: |
+          pip install --upgrade platformio
+          pio --version
+
+      - name: Build firmware
+        run: pio run -e cyd
+
+      - name: Merge binaries for web flasher
+        run: |
+          BOOT_APP0=~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin
+          test -f "$BOOT_APP0" || { echo "boot_app0.bin not found"; exit 1; }
+          python -m esptool --chip esp32 merge_bin \
+            -o merged.bin \
+            --flash_mode dio --flash_freq 40m --flash_size 4MB \
+            0x1000  .pio/build/cyd/bootloader.bin \
+            0x8000  .pio/build/cyd/partitions.bin \
+            0xe000  "$BOOT_APP0" \
+            0x10000 .pio/build/cyd/firmware.bin
+          ls -lh merged.bin
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            merged.bin
+            .pio/build/cyd/firmware.bin
+            .pio/build/cyd/bootloader.bin
+            .pio/build/cyd/partitions.bin
+          generate_release_notes: true
+
+      - name: Upload build artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            merged.bin
+            .pio/build/cyd/firmware.bin
