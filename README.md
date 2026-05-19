@@ -1,172 +1,196 @@
-# claude-desktop-buddy
+# claude-desktop-buddy — CYD port
 
-Claude for macOS and Windows can connect Claude Cowork and Claude Code to
-maker devices over BLE, so developers and makers can build hardware that
-displays permission prompts, recent messages, and other interactions. We've
-been impressed by the creativity of the maker community around Claude -
-providing a lightweight, opt-in API is our way of making it easier to build
-fun little hardware devices that integrate with Claude.
+> **You're on the `cyd` branch.** This is a port of Anthropic's
+> [`claude-desktop-buddy`](https://github.com/anthropics/claude-desktop-buddy)
+> firmware to the **Cheap Yellow Display** (ESP32-2432S028R) — a ~$10
+> ESP32 dev board with a 2.8" 240×320 resistive-touch TFT.
+>
+> The [`main`](https://github.com/skitzo2000/claude-desktop-buddy/tree/main)
+> branch on this fork tracks Anthropic's upstream **byte-for-byte**. The
+> CYD work lives only on `cyd` and is structured as a small overlay so
+> pulling future upstream changes stays a clean merge.
 
-> **Building your own device?** You don't need any of the code here. See
-> **[REFERENCE.md](REFERENCE.md)** for the wire protocol: Nordic UART
-> Service UUIDs, JSON schemas, and the folder push transport.
+The original M5StickCPlus device had buttons, an IMU, an RTC chip, and a
+battery; CYD has a touchscreen and a USB cable. The HAL layer in
+`src/hal/` makes the firmware run on the new board without disturbing the
+upstream sources.
 
-As an example, we built a desk pet on ESP32 that lives off permission
-approvals and interaction with Claude. It sleeps when nothing's happening,
-wakes when sessions start, gets visibly impatient when an approval prompt is
-waiting, and lets you approve or deny right from the device.
+## Two ways to use it
 
-<p align="center">
-  <img src="docs/device.jpg" alt="M5StickC Plus running the buddy firmware" width="500">
-</p>
+| You want… | Pair with | How |
+|---|---|---|
+| **Claude for macOS/Windows** to drive the device | Anthropic's bundled Hardware Buddy GUI (closed-source, Mac/Win only) | Developer mode → Open Hardware Buddy → Connect |
+| **Claude Code** (CLI / IDE-extension / web) to drive the device | The [`claude-hardware-buddy`](https://git.thenortonfamily.net/paul/claude-hardware-buddy) plugin — same wire protocol, Linux + macOS + Windows | `/plugin install claude-hardware-buddy` |
+
+The firmware is the same in both cases. The plugin replaces the desktop
+GUI for the Claude Code crowd; the BLE protocol (Nordic UART Service,
+newline-delimited JSON) is unchanged.
 
 ## Hardware
 
-The firmware targets ESP32 with the Arduino framework. As written, it
-depends on the M5StickCPlus library for its display, IMU, and button
-drivers—so you'll need that board, or a fork that swaps those drivers for
-your own pin layout.
+- **Board**: ESP32-2432S028R ("CYD" — sold under several brand names on
+  AliExpress, Amazon, etc. as "Cheap Yellow Display"). Common revisions
+  in the wild: 2432S028 single-USB, 2432S028R red-board dual-USB. This
+  firmware targets the **2432S028R**.
+- **Display**: ILI9341 240×320 SPI, on VSPI.
+- **Touch**: XPT2046 resistive controller, on HSPI (separate SPI bus —
+  this is critical; sharing the bus with the display breaks both).
+- **Power**: USB by default. CYD's P3 header exposes I²C and a few GPIOs
+  for add-on hardware.
+
+### Optional add-on hardware
+
+**TL;DR: a bare CYD is all you need. Plug it in, flash it, pair it —
+you get the full buddy experience.**
+
+The M5StickC Plus had an IMU, an RTC chip, and a battery on board; CYD
+doesn't. None of those are required to run this firmware. The HAL ships
+safe stubs so the buddy boots, pairs over BLE, shows ASCII or GIF pets,
+displays sessions and approval prompts, and handles touch — all on a
+stock CYD with nothing wired to the P3 header.
+
+The table below is for the small group of features that *would* be
+enriched by add-on hardware, and how cleanly the HAL slots one in if
+you want to. Skip it on a first build.
+
+| Feature | Today (no add-on) | With add-on |
+|---|---|---|
+| **IMU** — shake (`dizzy` state), face-down nap | `hal/imu.cpp` stub returns "face-up, at rest"; shake/orient logic compiles unchanged and never triggers | MPU6050 (or compatible) on the P3 header (SDA=22, SCL=27); enable with `-DHAS_IMU` build flag |
+| **RTC** — clock screen, time-stamped session log | Software RTC: `millis()` + NVS, anchored by the bridge's BLE time-sync on every reconnect; loses ≤ 60 s across reboot, resets on prolonged power-off | DS3231 / PCF8563 module on the same I²C header — same `rtcGet/Set*` API surface |
+| **Battery** — level, USB-attached flag | `powerStatus()` reports 100 % / 5000 mV / USB-attached (CYD is plugged in by design) | LiPo + an ADC divider on a free GPIO; `powerStatus()` is the single point of change |
+
+All three are HAL-only swaps — no upstream-file edits needed, so adding
+hardware doesn't grow the fork's overlay against Anthropic's `main`. The
+IMU and RTC drivers themselves are pending; PRs welcome.
 
 ## Flashing
 
 Install
 [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/),
-then:
+then from this directory:
 
 ```bash
-pio run -t upload
+pio run -e cyd -t upload
 ```
 
 If you're starting from a previously-flashed device, wipe it first:
 
 ```bash
-pio run -t erase && pio run -t upload
+pio run -e cyd -t erase && pio run -e cyd -t upload
 ```
 
-Once running, you can also wipe everything from the device itself: **hold A
-→ settings → reset → factory reset → tap twice**.
+Calibrate the touchscreen the first time you run it: **long-press the
+bottom-right corner** to enter the menu → **calibrate touch** → tap each
+of the four corner targets. The calibration is stored in NVS.
 
 ## Pairing
 
-To pair your device with Claude, first enable developer mode (**Help →
-Troubleshooting → Enable Developer Mode**). Then, open the Hardware Buddy
-window in **Developer → Open Hardware Buddy…**, click **Connect**, and pick
-your device from the list. macOS will prompt for Bluetooth permission on
-first connect; grant it.
+### With Claude Desktop (macOS / Windows)
 
-<p align="center">
-  <img src="docs/menu.png" alt="Developer → Open Hardware Buddy… menu item" width="420">
-  <img src="docs/hardware-buddy-window.png" alt="Hardware Buddy window with Connect button and folder drop target" width="420">
-</p>
+Enable developer mode (**Help → Troubleshooting → Enable Developer
+Mode**), then **Developer → Open Hardware Buddy…** → **Connect** → pick
+your device.
 
-Once paired, the bridge auto-reconnects whenever both sides are awake.
+### With Claude Code (Linux / macOS / Windows)
 
-If discovery isn't finding the stick:
-
-- Make sure it's awake (any button press)
-- Check the stick's settings menu → bluetooth is on
+Install the [`claude-hardware-buddy`](https://git.thenortonfamily.net/paul/claude-hardware-buddy)
+plugin and follow its README. The plugin ships a single Go binary that
+talks BLE directly — no Anthropic desktop app required.
 
 ## Controls
 
-|                         | Normal               | Pet         | Info        | Approval    |
-| ----------------------- | -------------------- | ----------- | ----------- | ----------- |
-| **A** (front)           | next screen          | next screen | next screen | **approve** |
-| **B** (right)           | scroll transcript    | next page   | next page   | **deny**    |
-| **Hold A**              | menu                 | menu        | menu        | menu        |
-| **Power** (left, short) | toggle screen off    |             |             |             |
-| **Power** (left, ~6s)   | hard power off       |             |             |             |
-| **Shake**               | dizzy                |             |             | —           |
-| **Face-down**           | nap (energy refills) |             |             |             |
+CYD has no buttons. Everything is touch zones:
 
-The screen auto-powers-off after 30s of no interaction (kept on while an
-approval prompt is up). Any button press wakes it.
-
-## ASCII pets
-
-Eighteen pets, each with seven animations (sleep, idle, busy, attention,
-celebrate, dizzy, heart). Menu → "next pet" cycles them with a counter.
-Choice persists to NVS.
-
-## GIF pets
-
-If you want a custom GIF character instead of an ASCII buddy, drag a
-character pack folder onto the drop target in the Hardware Buddy window. The
-app streams it over BLE and the stick switches to GIF mode live. **Settings
-→ delete char** reverts to ASCII mode.
-
-A character pack is a folder with `manifest.json` and 96px-wide GIFs:
-
-```json
-{
-  "name": "bufo",
-  "colors": {
-    "body": "#6B8E23",
-    "bg": "#000000",
-    "text": "#FFFFFF",
-    "textDim": "#808080",
-    "ink": "#000000"
-  },
-  "states": {
-    "sleep": "sleep.gif",
-    "idle": ["idle_0.gif", "idle_1.gif", "idle_2.gif"],
-    "busy": "busy.gif",
-    "attention": "attention.gif",
-    "celebrate": "celebrate.gif",
-    "dizzy": "dizzy.gif",
-    "heart": "heart.gif"
-  }
-}
+```
+┌───────────────────────────────┐
+│ ZONE_SLEEP                  ◯ │  Tap top-right corner → screen off
+│                               │  (replaces the M5 power-button toggle)
+│                               │
+│       BUDDY / GIF             │
+│                               │
+│                               │
+├───────────────────────────────┤
+│       HUD / TRANSCRIPT        │  Normal: tap to scroll
+│                               │
+├──────────────┬────────────────┤
+│              │                │
+│  ZONE_DENY   │  ZONE_APPROVE  │  Approval prompt: split halves
+│   (B)        │     (A)        │  - tap A = approve, tap B = deny
+│              │                │  - long-press A 600ms = menu
+└──────────────┴────────────────┘
 ```
 
-State values can be a single filename or an array. Arrays rotate: each
-loop-end advances to the next GIF, useful for an idle activity carousel so
-the home screen doesn't loop one clip forever.
+Outside of an approval, **A** advances screens and **B** scrolls; same
+semantics as the M5 button mapping.
 
-GIFs are 96px wide; height up to ~140px stays on a 135×240 portrait screen.
-Crop tight to the character — transparent margins waste screen and shrink
-the sprite. `tools/prep_character.py` handles the resize: feed it source
-GIFs at any sizes and it produces a 96px-wide set where the character is the
-same scale in every state.
+The screen auto-powers-off after 30s of no interaction (kept on while an
+approval prompt is up). Any tap wakes it.
 
-The whole folder must fit under 1.8MB —
-`gifsicle --lossy=80 -O3 --colors 64` typically cuts 40–60%.
+## ASCII pets and GIF pets
 
-See `characters/bufo/` for a working example.
+Both work the same as upstream. Eighteen ASCII species with seven
+animations each (sleep, idle, busy, attention, celebrate, dizzy, heart),
+or drag a character pack folder onto the bridge's drop target to stream
+a custom GIF set over BLE. The GIF format and the seven mood states are
+documented in
+[upstream's README on `main`](https://github.com/skitzo2000/claude-desktop-buddy/blob/main/README.md#gif-pets)
+— that section is unchanged.
 
-If you're iterating on a character and would rather skip the BLE round-trip,
-`tools/flash_character.py characters/bufo` stages it into `data/` and runs
-`pio run -t uploadfs` directly over USB.
-
-## The seven states
-
-| State       | Trigger                     | Feel                        |
-| ----------- | --------------------------- | --------------------------- |
-| `sleep`     | bridge not connected        | eyes closed, slow breathing |
-| `idle`      | connected, nothing urgent   | blinking, looking around    |
-| `busy`      | sessions actively running   | sweating, working           |
-| `attention` | approval pending            | alert, **LED blinks**       |
-| `celebrate` | level up (every 50K tokens) | confetti, bouncing          |
-| `dizzy`     | you shook the stick         | spiral eyes, wobbling       |
-| `heart`     | approved in under 5s        | floating hearts             |
+One CYD-specific note: GIFs render to the wider 240px canvas instead of
+M5's 135px, so character packs sized for M5 will appear left-aligned
+with empty space on the right. Re-cropping with `tools/prep_character.py`
+fixes this.
 
 ## Project layout
 
 ```
 src/
-  main.cpp       — loop, state machine, UI screens
-  buddy.cpp      — ASCII species dispatch + render helpers
-  buddies/       — one file per species, seven anim functions each
-  ble_bridge.cpp — Nordic UART service, line-buffered TX/RX
-  character.cpp  — GIF decode + render
-  data.h         — wire protocol, JSON parse
-  xfer.h         — folder push receiver
-  stats.h        — NVS-backed stats, settings, owner, species choice
-characters/      — example GIF character packs
-tools/           — generators and converters
+  main.cpp           — loop, state machine, UI screens
+  buddy.cpp          — ASCII species dispatch + render helpers
+  buddies/           — 18 species files (byte-identical with upstream)
+  ble_bridge.cpp     — Nordic UART service
+  character.cpp      — GIF decode + render (byte-identical with upstream)
+  data.h, xfer.h     — wire protocol + folder push
+  stats.h            — NVS-backed stats, settings, owner, species choice
+  hal/               — CYD HAL: board, input (touch), rtc, power, led,
+                       audio, imu, touch_calibration
+  cyd/               — reserved for the planned main.cpp split
+  m5_shim.cpp        — defines the M5 facade instance
+include/
+  M5StickCPlus.h     — compile-time shim mapping the small M5 API surface
+                       (Rtc, Axp) used by upstream files onto HAL calls
+characters/          — example GIF character packs
+tools/               — generators and converters (unchanged)
 ```
 
-## Availability
+## Branching strategy on this fork
 
-The BLE API is only available when the desktop apps are in developer mode
-(**Help → Troubleshooting → Enable Developer Mode**). It's intended for
-makers and developers and isn't an officially supported product feature.
+- **`main`** — tracks `anthropics/claude-desktop-buddy@main` byte-for-byte.
+  Never edited directly. Used as the rebase target when pulling upstream
+  changes.
+- **`cyd`** — the default branch. CYD-port firmware as an overlay over
+  `main`. ~5 upstream files modified, the rest of the port is additive
+  (HAL layer + shim).
+- Feature branches off `cyd`, PR back into `cyd`.
+
+## Further reading
+
+The deep design docs live in the companion plugin repo, next to the rest
+of the bridge documentation:
+
+- [PORT.md](https://git.thenortonfamily.net/paul/claude-hardware-buddy/src/branch/main/docs/cyd-port/PORT.md)
+  — pin map, library swaps, file-by-file porting plan, geometry retune,
+  touch-zone hit-test math, risk register.
+- [MILESTONES.md](https://git.thenortonfamily.net/paul/claude-hardware-buddy/src/branch/main/docs/cyd-port/MILESTONES.md)
+  — the execution plan that produced this branch (M1 through M5).
+
+For the underlying BLE wire protocol (Nordic UART Service UUIDs, JSON
+schemas, folder push transport), see Anthropic's
+[REFERENCE.md](REFERENCE.md) — that document is unchanged on this fork.
+
+## License and credit
+
+Apache 2.0. The firmware, ASCII pets, animation state machine, BLE
+protocol, GIF character format, and the original device design are all
+Anthropic's. The CYD port (HAL layer, touch input, M5 API shim, geometry
+retune) is in this fork.
