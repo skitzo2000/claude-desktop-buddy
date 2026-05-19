@@ -20,10 +20,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PlatformIO
+      - name: Install PlatformIO and esptool
         run: |
-          pip install --upgrade platformio
+          pip install --upgrade platformio esptool
           pio --version
+          python -m esptool version
 
       - name: Build firmware
         run: pio run -e cyd
