@@ -2,8 +2,9 @@ name: Release firmware
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [cyd]
+    tags: ['v*']
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -53,10 +54,12 @@ jobs:
           generate_release_notes: true
 
       - name: Upload build artifacts
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: firmware-${{ github.sha }}
           path: |
             merged.bin
             .pio/build/cyd/firmware.bin
+            .pio/build/cyd/bootloader.bin
+            .pio/build/cyd/partitions.bin
+          retention-days: 14
