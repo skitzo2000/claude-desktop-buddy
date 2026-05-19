@@ -29,13 +29,13 @@ Pick one:
   (Help → Troubleshooting), then **Developer → Open Hardware Buddy →
   Connect**.
 - **Claude Code** (Linux / macOS / Windows) — install the
-  [`claude-hardware-buddy`](https://git.thenortonfamily.net/paul/claude-hardware-buddy)
+  [`ai-hardware-buddy`](https://github.com/skitzo2000/ai-hardware-buddy)
   plugin.
 
 ## More details
 
 - [docs/](docs/) — manual, screenshots, original device photos.
-- [PORT.md](https://git.thenortonfamily.net/paul/claude-hardware-buddy/src/branch/main/docs/cyd-port/PORT.md)
+- [PORT.md](https://github.com/skitzo2000/ai-hardware-buddy/blob/main/docs/cyd-port/PORT.md)
   — how the port works (pin map, HAL, touch zones, optional add-ons).
 - [REFERENCE.md](REFERENCE.md) — BLE wire protocol, GIF character format.
 - [upstream README](https://github.com/anthropics/claude-desktop-buddy)
