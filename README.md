@@ -35,13 +35,33 @@ newline-delimited JSON) is unchanged.
 - **Display**: ILI9341 240×320 SPI, on VSPI.
 - **Touch**: XPT2046 resistive controller, on HSPI (separate SPI bus —
   this is critical; sharing the bus with the display breaks both).
-- **Power**: USB-only. There's no battery; the device is designed to sit
-  on a desk plugged in.
+- **Power**: USB by default. CYD's P3 header exposes I²C and a few GPIOs
+  for add-on hardware.
 
-What's not there compared to the M5Stick original: no IMU (so no shake
-detection, no face-down nap), no battery readout, no hardware RTC. The
-firmware fakes RTC via `millis()` + NVS, and the bridge re-syncs time on
-every BLE connect.
+### Optional add-on hardware
+
+**TL;DR: a bare CYD is all you need. Plug it in, flash it, pair it —
+you get the full buddy experience.**
+
+The M5StickC Plus had an IMU, an RTC chip, and a battery on board; CYD
+doesn't. None of those are required to run this firmware. The HAL ships
+safe stubs so the buddy boots, pairs over BLE, shows ASCII or GIF pets,
+displays sessions and approval prompts, and handles touch — all on a
+stock CYD with nothing wired to the P3 header.
+
+The table below is for the small group of features that *would* be
+enriched by add-on hardware, and how cleanly the HAL slots one in if
+you want to. Skip it on a first build.
+
+| Feature | Today (no add-on) | With add-on |
+|---|---|---|
+| **IMU** — shake (`dizzy` state), face-down nap | `hal/imu.cpp` stub returns "face-up, at rest"; shake/orient logic compiles unchanged and never triggers | MPU6050 (or compatible) on the P3 header (SDA=22, SCL=27); enable with `-DHAS_IMU` build flag |
+| **RTC** — clock screen, time-stamped session log | Software RTC: `millis()` + NVS, anchored by the bridge's BLE time-sync on every reconnect; loses ≤ 60 s across reboot, resets on prolonged power-off | DS3231 / PCF8563 module on the same I²C header — same `rtcGet/Set*` API surface |
+| **Battery** — level, USB-attached flag | `powerStatus()` reports 100 % / 5000 mV / USB-attached (CYD is plugged in by design) | LiPo + an ADC divider on a free GPIO; `powerStatus()` is the single point of change |
+
+All three are HAL-only swaps — no upstream-file edits needed, so adding
+hardware doesn't grow the fork's overlay against Anthropic's `main`. The
+IMU and RTC drivers themselves are pending; PRs welcome.
 
 ## Flashing
 
