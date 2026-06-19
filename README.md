@@ -8,6 +8,28 @@ You get the same buddy: a little pet on your desk that wakes up when Claude
 is working, shows what's happening, and lets you tap **approve / deny** on
 tool prompts.
 
+## Companion project: ai-hardware-buddy
+
+Two repos, one pet.
+
+This repo is the **firmware** — the bits that run on the ESP32 and
+make it act like a buddy. Its sibling
+[**ai-hardware-buddy**](https://github.com/skitzo2000/ai-hardware-buddy)
+is the **Claude Code plugin** — the bits that let the buddy approve
+tool calls, mirror sessions, and track tokens for your CLI work the
+same way Claude Desktop's built-in GUI already does. Together they put
+the buddy in front of every way you use Claude.
+
+|                | M5StickC Plus                          | CYD ESP32                                |
+|----------------|----------------------------------------|------------------------------------------|
+| Claude Desktop | Anthropic's original firmware + GUI    | This firmware + Claude Desktop GUI       |
+| Claude Code    | Original firmware + the plugin         | This firmware + the plugin               |
+
+**Each side runs standalone.** You don't need the plugin to drive a
+CYD from Claude Desktop, and you don't need a CYD to use the plugin —
+the plugin talks to any board running buddy firmware, including
+Anthropic's original M5StickC Plus.
+
 ## Get started
 
 You'll need a CYD board (USB-C version, sold as "ESP32-2432S028R" on
